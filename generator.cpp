@@ -117,7 +117,7 @@ void generator::ChunkGenerator::init()
     generator::ChunkGenerator::advance_2 = random_math::JavaRand::lcg.combine(2);
     generator::ChunkGenerator::advance_3 = random_math::JavaRand::lcg.combine(3);
     generator::ChunkGenerator::advance_4 = random_math::JavaRand::lcg.combine(4);
-    generator::ChunkGenerator::advance_7 = random_math::JavaRand::lcg.combine(4);
+    generator::ChunkGenerator::advance_7 = random_math::JavaRand::lcg.combine(7);
     generator::ChunkGenerator::advance_9 = random_math::JavaRand::lcg.combine(9);
     generator::ChunkGenerator::advance_11 = random_math::JavaRand::lcg.combine(11);
     generator::ChunkGenerator::advance_16 = random_math::JavaRand::lcg.combine(16);
