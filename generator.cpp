@@ -1,6 +1,6 @@
 #include "generator.h"
 
-#define WATERFALL_Z 10
+#define WATERFALL_Z 9
 #define TREE1_X -5 // Left tree on the image
 #define TREE1_Z WATERFALL_Z - 8
 #define TREE1_HEIGHT 5
@@ -52,12 +52,20 @@ bool generator::ChunkGenerator::leafPatternNot0And4(random_math::JavaRand& rando
 {
     bool _0 = random.nextIntPow2Unchecked(2) != 0;
     random.advance(advance_3);
-
     bool _4 = random.nextIntPow2Unchecked(2) != 0;
     random.advance(advance_11);
-
-
     return !_0 && _4;
+}
+
+bool generator::ChunkGenerator::testA2(random_math::JavaRand& random)
+{
+    bool _0 = random.nextIntPow2Unchecked(2) != 0;
+    random.advance(advance_3);
+    bool _4 = random.nextIntPow2Unchecked(2) != 0;
+    random.advance(advance_7);
+    bool _12 = random.nextIntPow2Unchecked(2) != 0;
+    random.advance(advance_3);
+    return _0 && _4 && !_12;
 }
 
 int32_t generator::ChunkGenerator::checkTrees(random_math::JavaRand& random, int32_t maxTreeCount, int waterfallX)
@@ -69,9 +77,12 @@ int32_t generator::ChunkGenerator::checkTrees(random_math::JavaRand& random, int
         int32_t treeZ = random.nextIntPow2Unchecked(16);
         int32_t height = random.nextInt(3) + 4;
         if (!treesFound[0] && treeX == waterfallX + TREE1_X && treeZ == TREE1_Z && height == TREE1_HEIGHT) {
-            ignoreLeafPattern(random);
-            foundTreeCount++;
-            treesFound[0] = true;
+            if (testA2(random)) {
+                foundTreeCount++;
+                treesFound[0] = true;
+            } else {
+                return -1;
+            }
         } else if (!treesFound[1] && treeX == waterfallX + TREE2_X && treeZ == TREE2_Z && height == TREE2_HEIGHT) {
             if (leafPatternNot0And4(random)) {
                 foundTreeCount++;
@@ -103,12 +114,20 @@ bool generator::ChunkGenerator::populate(int64_t chunkSeed, int waterfallX)
 
 void generator::ChunkGenerator::init()
 {
+    generator::ChunkGenerator::advance_2 = random_math::JavaRand::lcg.combine(2);
     generator::ChunkGenerator::advance_3 = random_math::JavaRand::lcg.combine(3);
+    generator::ChunkGenerator::advance_4 = random_math::JavaRand::lcg.combine(4);
+    generator::ChunkGenerator::advance_7 = random_math::JavaRand::lcg.combine(4);
+    generator::ChunkGenerator::advance_9 = random_math::JavaRand::lcg.combine(9);
     generator::ChunkGenerator::advance_11 = random_math::JavaRand::lcg.combine(11);
     generator::ChunkGenerator::advance_16 = random_math::JavaRand::lcg.combine(16);
     generator::ChunkGenerator::advance_3759 = random_math::JavaRand::lcg.combine(3759);
 }
+random_math::LCG generator::ChunkGenerator::advance_2(1, 1, 1);
 random_math::LCG generator::ChunkGenerator::advance_3(1, 1, 1);
+random_math::LCG generator::ChunkGenerator::advance_4(1, 1, 1);
+random_math::LCG generator::ChunkGenerator::advance_7(1, 1, 1);
+random_math::LCG generator::ChunkGenerator::advance_9(1, 1, 1);
 random_math::LCG generator::ChunkGenerator::advance_11(1, 1, 1);
 random_math::LCG generator::ChunkGenerator::advance_16(1, 1, 1);
 random_math::LCG generator::ChunkGenerator::advance_3759(1, 1, 1);

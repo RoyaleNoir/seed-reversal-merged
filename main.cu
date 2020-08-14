@@ -81,15 +81,18 @@ inline void gpuAssert(cudaError_t code, const char* file, int32_t line) {
 
 // advance
 #define advance_rng(rand, multiplier, addend) ((rand) = ((rand) * (multiplier) + (addend)) & RANDOM_MASK)
+#define advance_830(rand) advance_rng(rand, 0x859D39E832D9LL, 0xE3E2DF5E9196LL)
+#define advance_774(rand) advance_rng(rand, 0xF8D900133F9LL, 0x5738CAC2F85ELL)
+#define advance_387(rand) advance_rng(rand, 0x5FE2BCEF32B5LL, 0xB072B3BF0CBDLL)
 #define advance_16(rand) advance_rng(rand, 0x6DC260740241LL, 0xD0352014D90LL)
 #define advance_m1(rand) advance_rng(rand, 0xDFE05BCB1365LL, 0x615C0E462AA9LL)
 #define advance_m3759(rand) advance_rng(rand, 0x63A9985BE4ADLL, 0xA9AA8DA9BC9BLL)
 
 
 
-#define WATERFALL_X 16
-//#define WATERFALL_Y 76
-#define WATERFALL_Z 10
+#define WATERFALL_X 12
+#define WATERFALL_Y 76
+#define WATERFALL_Z 9
 
 #define TREE_X (WATERFALL_X - 5)
 #define TREE_Z (WATERFALL_Z - 8)
@@ -109,9 +112,12 @@ __device__ inline int32_t getTreeHeight(int32_t x, int32_t z) {
 
 
 #define MODULUS (1LL << 48)
+#define SQUARE_SIDE (MODULUS / 16)
 #define X_TRANSLATE 0
 #define L00 7847617LL
 #define L01 (-18218081LL)
+#define L10 4824621LL
+#define L11 24667315LL
 #define LI00 (24667315.0 / 16)
 #define LI01 (18218081.0 / 16)
 #define LI10 (-4824621.0 / 16)
@@ -197,6 +203,7 @@ __global__ void doWork(const int32_t* num_starts, const Random* tree_starts, int
             memset(generated_tree, 0x00, sizeof(generated_tree));
 
             int32_t treesMatched = 0;
+            bool any_population_matches = false;
             for (int32_t treeAttempt = 0; treeAttempt <= MAX_TREE_ATTEMPTS; treeAttempt++) {
                 int32_t treeX = random_next(&rand, 4);
                 int32_t treeZ = random_next(&rand, 4);
@@ -211,9 +218,40 @@ __global__ void doWork(const int32_t* num_starts, const Random* tree_starts, int
                     boolpack |= mask;
                     advance_16(rand);
                 }
+                if (treesMatched == OTHER_TREE_COUNT + 1) {
+                    Random before_rest = rand;
+                    // yellow flowers
+                    advance_774(rand);
+                    // red flowers
+                    if (random_next(&rand, 1) == 0) {
+                        advance_387(rand);
+                    }
+                    // brown mushroom
+                    if (random_next(&rand, 2) == 0) {
+                        advance_387(rand);
+                    }
+                    // red mushroom
+                    if (random_next(&rand, 3) == 0) {
+                        advance_387(rand);
+                    }
+                    // reeds
+                    advance_830(rand);
+                    // pumpkins
+                    if (random_next(&rand, 5) == 0) {
+                        advance_387(rand);
+                    }
+
+                    for (int i = 0; i < 50; i++) {
+                        bool waterfall_matches = random_next(&rand, 4) == WATERFALL_X;
+                        waterfall_matches &= random_next_int(&rand, random_next_int(&rand, 120) + 8) == WATERFALL_Y;
+                        waterfall_matches &= random_next(&rand, 4) == WATERFALL_Z;
+                        any_population_matches |= waterfall_matches;
+                    }
+                    rand = before_rest;
+                }
             }
 
-            this_res &= treesMatched >= OTHER_TREE_COUNT + 1;
+            this_res &= any_population_matches;
 
             if (this_res) {
                 Random start_chunk_rand = start;
@@ -304,7 +342,7 @@ int main(int argc, char *argv[]) {
         setup_gpu_node(&nodes[i], i);
     }
 
-    std::vector<std::thread> threads(std::thread::hardware_concurrency() - 4);
+    std::vector<std::thread> threads(std::thread::hardware_concurrency() - 3);
     std::mutex fileMutex;
 
     std::atomic<uint64_t> count(0);
@@ -352,7 +390,7 @@ int main(int argc, char *argv[]) {
                     }
                     writeBufCur = writeBuffer;
                 }
-                if (generator::ChunkGenerator::populate(tempStorage[j], X_TRANSLATE + 16)) {
+                if (generator::ChunkGenerator::populate(tempStorage[j], WATERFALL_X)) {
                     myCount++;
                     writeBufCur += snprintf(writeBufCur, MAX_NUMBER_LEN, "%lld\n", tempStorage[j]);
                 }
@@ -419,7 +457,7 @@ int main(int argc, char *argv[]) {
 
     // Last batch to do
     for (int32_t j = 0; j < arraySize; ++j) {
-        if (generator::ChunkGenerator::populate(tempStorage[j], X_TRANSLATE + 16)) {
+        if (generator::ChunkGenerator::populate(tempStorage[j], WATERFALL_X)) {
             fprintf(out_file, "%lld\n", tempStorage[j]);
             count++;
         }
